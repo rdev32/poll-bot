@@ -8,6 +8,7 @@ import {
     ButtonStyle
 } from 'discord.js'
 
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -18,11 +19,33 @@ const client = new Client({
     ]
 })
 
+const sessions = []
+
+function createSession(messageId) {
+    sessions.push({
+        id: messageId,
+        users: []
+    })
+}
+
+function joinSession(messageId, userId) {
+    for (let i = 0; i < sessions.length; i++) {
+        if (sessions[i].id == messageId)
+            sessions[i].users.push(userId)
+    }
+}
+
+function alreadyVoted(messageId, userId) {
+    for (let i = 0; i < sessions.length; i++) {
+        if (sessions[i].id == messageId)
+            return sessions[i].users.includes(userId) ? true : false
+    }
+}
+
 client.once('ready', () => {
     console.log(`Bot ${client.user.tag} is up and running!`)
 })
 
-// TODO: prevent repeating votes by adding voters in an array
 client.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return
     
@@ -35,23 +58,36 @@ client.on('interactionCreate', async interaction => {
 
     let interactionFields = interactionEmbedMessage.fields
     
+    if (sessions.length > 0) {
+        if (alreadyVoted(interaction.message.id, interaction.user.id))
+            return interaction.reply({
+                content: 'Ya votaste',
+                ephemeral: true
+            })
+    }
+
     switch (interactionButton) {
         case 'btn-0':
+            joinSession(interaction.message.id, interaction.user.id)           
             interactionFields[0].value = (parseInt(interactionFields[0].value) + 1).toString()
             interactionEdit.addFields(interactionFields)
+
             break
             
         case 'btn-1':
+            joinSession(interaction.message.id, interaction.user.id)
             interactionFields[1].value = (parseInt(interactionFields[1].value) + 1).toString()
             interactionEdit.addFields(interactionFields)
             break
 
         case 'btn-2':
+            joinSession(interaction.message.id, interaction.user.id)
             interactionFields[2].value = (parseInt(interactionFields[2].value) + 1).toString()
             interactionEdit.addFields(interactionFields)
             break
 
         case 'btn-3':
+            joinSession(interaction.message.id, interaction.user.id)
             interactionFields[3].value = (parseInt(interactionFields[3].value) + 1).toString()
             interactionEdit.addFields(interactionFields)
             break
@@ -95,12 +131,9 @@ client.on('interactionCreate', async interaction => {
             .setDescription(`Poll made by ${interaction.user.tag}`)
             .addFields(embedResults)
 
-		await interaction.reply({ embeds: [pollMessage], components: [optionsRow]})
+		const { id } = await interaction.reply({ embeds: [pollMessage], components: [optionsRow], fetchReply: true})
+        createSession(id)
     }
-
-
 })
 
 client.login(process.env.TOKEN)
-
-
