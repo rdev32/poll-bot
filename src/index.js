@@ -39,8 +39,8 @@ function createPollEmbed(interaction, erase = false) {
     const total_options = parseInt(interaction.options.getString('total_options'))
     const numberOfButtons = (total_options < 6 && total_options > 1) ? total_options : 2
 
-    for (let i = 0; i < numberOfButtons; i++)
-        optionArguments.push(interaction.options.getString(`choice_${i+1}`))
+    for (let i = 1; i <= numberOfButtons; i++)
+        optionArguments.push(interaction.options.getString(`choice_${i}`))
 
 
     for (let i = 0; i < numberOfButtons; i++) {
