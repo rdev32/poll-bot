@@ -33,7 +33,6 @@ const locales = {
 const sessions = []
 
 function createPollEmbed(interaction, erase = false) {
-    // interaction message edit button row with foreach disabling buttons
     const optionArguments = []
     const buttons = []
     const embededResults = []
