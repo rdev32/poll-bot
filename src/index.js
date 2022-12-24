@@ -20,30 +20,60 @@ const client = new Client({
 })
 
 const locales = {
-    'es-ES': 'Ya votaste'
-}
-
-class Session {
-    constructor(messageID) {
-        this.sessionID = messageID
-        this.sessionUsers = new Array()
-    }
-}
-
-class SessionManager extends Session {
-    constructor() {
-        super()
-    }
-
-    joinSession() {
-        for (let i = 0; i < sessions.length; i++) {
-            if (sessions[i].id == messageId)
-                sessions[i].users.push(userId)
-        }   
+    'es-ES': {
+        'vote': 'Ya votaste',
+        'poll': 'Encuesta hecha por ',
+    },
+    'en-US': {
+        'vote': 'You already voted',
+        'poll': 'Poll made by ',
     }
 }
 
 const sessions = []
+
+function createPollEmbed(interaction, erase = false) {
+    // interaction message edit button row with foreach disabling buttons
+    const optionArguments = []
+    const buttons = []
+    const embededResults = []
+    const total_options = parseInt(interaction.options.getString('total_options'))
+    const numberOfButtons = (total_options < 6 && total_options > 1) ? total_options : 2
+
+    for (let i = 0; i < numberOfButtons; i++)
+        optionArguments.push(interaction.options.getString(`choice_${i+1}`))
+
+
+    for (let i = 0; i < numberOfButtons; i++) {
+        buttons.push(new ButtonBuilder()
+            .setCustomId(`button_${i}`)
+            .setLabel(`${optionArguments[i]}`)
+            .setStyle(ButtonStyle.Secondary))
+
+        embededResults.push({ name: `${optionArguments[i]}`, value: '0', inline: true })
+    }
+
+    const optionsRow = new ActionRowBuilder().addComponents(buttons)
+
+    const pollMessage = new EmbedBuilder()
+        .setColor(0xf5dd42)
+        .setTitle(interaction.options.getString('question'))
+        .setDescription(locales[interaction.locale].poll + interaction.user.username)
+        .addFields(embededResults)
+    
+    return (erase) ? 
+    { 
+        embeds: [pollMessage], 
+        components: [new ActionRowBuilder().addComponents(buttons.map(item => item.setDisabled(true)))], 
+        fetchReply: true 
+    } 
+        : 
+    { 
+        embeds: [pollMessage], 
+        components: [optionsRow], 
+        fetchReply: true 
+    }
+}
 
 function createSession(messageId) {
     sessions.push({
@@ -73,7 +103,7 @@ client.once('ready', () => {
 
 client.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return
-    const interactionButton = interaction.customId
+
     const interactionEmbedMessage = interaction.message.embeds.pop()
     const interactionEdit = new EmbedBuilder()
         .setColor(interactionEmbedMessage.hexColor)
@@ -82,31 +112,32 @@ client.on('interactionCreate', async interaction => {
 
     let interactionFields = interactionEmbedMessage.fields
     let responseValid = true
+
     if (checkInSession(interaction.message.id, interaction.user.id)) {
         responseValid = false
     }
+
     if (responseValid) {
-        switch (interactionButton) {
-            case 'btn-0':
+        switch (interaction.customId) {
+            case 'button_0':
                 joinSession(interaction.message.id, interaction.user.id)
                 interactionFields[0].value = (parseInt(interactionFields[0].value) + 1).toString()
                 interactionEdit.addFields(interactionFields)
                 break
 
-            case 'btn-1':
+            case 'button_1':
                 joinSession(interaction.message.id, interaction.user.id)
                 interactionFields[1].value = (parseInt(interactionFields[1].value) + 1).toString()
                 interactionEdit.addFields(interactionFields)
                 break
 
-            case 'btn-2':
+            case 'button_2':
                 joinSession(interaction.message.id, interaction.user.id)
                 interactionFields[2].value = (parseInt(interactionFields[2].value) + 1).toString()
                 interactionEdit.addFields(interactionFields)
                 break
-                break
 
-            case 'btn-3':
+            case 'button_3':
                 joinSession(interaction.message.id, interaction.user.id)
                 interactionFields[3].value = (parseInt(interactionFields[3].value) + 1).toString()
                 interactionEdit.addFields(interactionFields)
@@ -120,7 +151,7 @@ client.on('interactionCreate', async interaction => {
     } else {
 
         await interaction.reply({
-            content: locales[interaction.locale] ?? 'You already voted!',
+            content: locales[interaction.locale].vote,
             ephemeral: true
         })
     }
@@ -132,34 +163,15 @@ client.on('interactionCreate', async interaction => {
     const { commandName } = interaction
 
     if (commandName === 'poll') {
-        const totalArg = parseInt(interaction.options.getString('total'))
-        const numberOfButtons = (totalArg < 6 && totalArg > 1) ? totalArg : 2
-        const optionsArgs = []
-
-        for (let i = 0; i < numberOfButtons; i++)
-            optionsArgs.push(interaction.options.getString(`option${i}`))
-
-        const buttons = []
-        const embedResults = []
-        for (let i = 0; i < numberOfButtons; i++) {
-            buttons.push(new ButtonBuilder()
-                .setCustomId(`btn-${i}`)
-                .setLabel(`${optionsArgs[i]}`)
-                .setStyle(ButtonStyle.Secondary))
-
-            embedResults.push({ name: `${optionsArgs[i]}`, value: '0', inline: true })
+        const timeout = interaction.options.getString('timeout')
+        const msg = createPollEmbed(interaction)
+        try {
+            const reply = await interaction.reply(msg)
+            createSession(reply.id)
+            setTimeout(async () => await interaction.editReply(createPollEmbed(interaction, true)), timeout)
+        } catch (error) {
+            console.log(error)
         }
-
-        const optionsRow = new ActionRowBuilder().addComponents(buttons)
-
-        const pollMessage = new EmbedBuilder()
-            .setColor(0xf5dd42)
-            .setTitle(interaction.options.getString('question'))
-            .setDescription(`Poll made by ${interaction.user.tag}`)
-            .addFields(embedResults)
-
-        const { id } = await interaction.reply({ embeds: [pollMessage], components: [optionsRow], fetchReply: true })
-        createSession(id)
     }
 })
 
