@@ -4,7 +4,7 @@
   "scripts": {
     "start": "nodemon src/index.js --exec babel-node",
     "build": "babel-node ./src/commands.js",
-    "dist": "babel src --out-dir build"
+    "dist": "babel src --out-dir dist"
   },
   "dependencies": {
     "discord.js": "^14.5.0",
