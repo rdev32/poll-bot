@@ -25,6 +25,7 @@ let commands = [
 				.setDescription('How much time will your poll last?')
 				.setRequired(true)
 				.addChoices(
+					{ name: '1 minute', value: '60000' },
 					{ name: '5 minutes', value: '300000' },
 					{ name: '15 minutes', value: '900000' },
 					{ name: '30 minutes', value: '1800000' },
