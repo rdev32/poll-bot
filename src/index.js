@@ -32,7 +32,7 @@ const locales = {
 
 const sessions = []
 
-function createPollEmbed(interaction, erase = false) {
+function createPoll(interaction) {
     const optionArguments = []
     const buttons = []
     const embededResults = []
@@ -41,7 +41,6 @@ function createPollEmbed(interaction, erase = false) {
 
     for (let i = 1; i <= numberOfButtons; i++)
         optionArguments.push(interaction.options.getString(`choice_${i}`))
-
 
     for (let i = 0; i < numberOfButtons; i++) {
         buttons.push(new ButtonBuilder()
@@ -59,25 +58,28 @@ function createPollEmbed(interaction, erase = false) {
         .setTitle(interaction.options.getString('question'))
         .setDescription(locales[interaction.locale].poll + interaction.user.username)
         .addFields(embededResults)
-    
-    return (erase) ? 
-    { 
-        embeds: [pollMessage], 
-        components: [new ActionRowBuilder().addComponents(buttons.map(item => item.setDisabled(true)))], 
-        fetchReply: true 
-    } 
-        : 
-    { 
-        embeds: [pollMessage], 
-        components: [optionsRow], 
-        fetchReply: true 
-    }
+
+    return { embeds: [pollMessage], components: [optionsRow], fetchReply: true }
+}
+
+function editedPoll() {
+
+}
+
+function disableButtons(interaction) {
+    // const interactionEdit = new EmbedBuilder()
+    //     .setColor(0x3de37a)
+    //     .setTitle(sessions[interaction.id].options.tag)
+    //     .setDescription('alternative X won')
+    // return { embeds: interactionEdit }
+    console.log(sessions[0].options)
 }
 
 function createSession(messageId) {
     sessions.push({
         id: messageId,
-        users: []
+        users: [],
+        options: []
     })
 }
 
@@ -85,6 +87,14 @@ function joinSession(messageId, userId) {
     for (let i = 0; i < sessions.length; i++) {
         if (sessions[i].id == messageId)
             sessions[i].users.push(userId)
+    }
+}
+
+function updateSessionCount(messageId, option, count, choice_name) {
+    for (let i = 0; i < sessions.length; i++) {
+        if (sessions[i].id == messageId)
+            sessions[i].options.push({ tag : choice_name })
+            sessions[i].options.push({ [option] : count })
     }
 }
 
@@ -121,24 +131,28 @@ client.on('interactionCreate', async interaction => {
             case 'button_0':
                 joinSession(interaction.message.id, interaction.user.id)
                 interactionFields[0].value = (parseInt(interactionFields[0].value) + 1).toString()
+                updateSessionCount(interaction.message.id, 'button_0', parseInt(interactionFields[0].value, interactionEdit.title))
                 interactionEdit.addFields(interactionFields)
                 break
 
             case 'button_1':
                 joinSession(interaction.message.id, interaction.user.id)
                 interactionFields[1].value = (parseInt(interactionFields[1].value) + 1).toString()
+                updateSessionCount(interaction.message.id, 'button_1', parseInt(interactionFields[1].value, interactionEdit.title))
                 interactionEdit.addFields(interactionFields)
                 break
 
             case 'button_2':
                 joinSession(interaction.message.id, interaction.user.id)
                 interactionFields[2].value = (parseInt(interactionFields[2].value) + 1).toString()
+                updateSessionCount(interaction.message.id, 'button_2', parseInt(interactionFields[2].value, interactionEdit.title))
                 interactionEdit.addFields(interactionFields)
                 break
 
             case 'button_3':
                 joinSession(interaction.message.id, interaction.user.id)
                 interactionFields[3].value = (parseInt(interactionFields[3].value) + 1).toString()
+                updateSessionCount(interaction.message.id, 'button_3', parseInt(interactionFields[3].value, interactionEdit.title))
                 interactionEdit.addFields(interactionFields)
                 break
 
@@ -148,7 +162,6 @@ client.on('interactionCreate', async interaction => {
 
         await interaction.update({ embeds: [interactionEdit] })
     } else {
-
         await interaction.reply({
             content: locales[interaction.locale].vote,
             ephemeral: true
@@ -160,17 +173,17 @@ client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return
 
     const { commandName } = interaction
+    if (commandName !== 'poll') return
 
-    if (commandName === 'poll') {
-        const timeout = interaction.options.getString('timeout')
-        const msg = createPollEmbed(interaction)
-        try {
-            const reply = await interaction.reply(msg)
-            createSession(reply.id)
-            setTimeout(async () => await interaction.editReply(createPollEmbed(interaction, true)), timeout)
-        } catch (error) {
-            console.log(error)
-        }
+    const timeout = interaction.options.getString('timeout')
+    const message = createPoll(interaction)
+
+    try {
+        const reply = await interaction.reply(message)
+        createSession(reply.id)
+        setTimeout(async () => await interaction.editReply(disableButtons(interaction)), timeout)
+    } catch (error) {
+        console.log(error)
     }
 })
 
