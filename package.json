@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "start": "nodemon src/index.js --exec babel-node",
-    "build": "babel-node ./src/commands.js",
+    "build": "babel-node ./src/commands/index.js",
     "dist": "babel src --out-dir dist"
   },
   "dependencies": {
